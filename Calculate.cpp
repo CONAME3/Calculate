@@ -1,18 +1,14 @@
 ﻿#include <iostream>
 #include <sstream>
 #include <stack>
-#include <windows.h>
-#include <conio.h>
-#include <math.h>
 
 using namespace std;
-const float VERSION = 0.1f;
+const float VERSION = 0.2f;
 
 enum Mode
 {
 	Standart,
 	Sqrt,
-
 };
 
 struct Token
@@ -21,27 +17,62 @@ struct Token
 	double value;
 };
 
-Mode Select_Mode(Mode &selected)
+Mode Select_Mode(Mode& selected)
 {
-	if (selected == NULL) {
-		
-	}
 	selected = Standart;
-	return selected; // Выбранный пользователем режим.
+	return selected;
 }
 
-double Standart_Math()
+int Check_Priority(char ch)
+{
+	if (ch == '^') { return 3; }
+	else if (ch == '*' || ch == '/') { return 2; }
+	else if (ch == '+' || ch == '-') { return 1; }
+}
+
+void Standart_Math(stack <Token>& stack_nums, stack <Token>& stack_op, Token& item)
+{
+	double a, b;
+
+	a = stack_nums.top().value;
+	stack_nums.pop();
+	b = stack_nums.top().value;
+	stack_nums.pop();
+	item.symbol = '0';
+
+	switch (stack_op.top().symbol) {
+	case '^':
+		item.value = pow(b, a);
+		break;
+	case '*':
+		item.value = a * b;
+		break;
+	case '/':
+		if (a == 0) { cerr << endl << "Деление на нуль."; system("pause"); exit(1); }
+		item.value = b / a;
+		break;
+	case '+':
+		item.value = a + b;
+		break;
+	case '-':
+		item.value = b - a;
+		break;
+	}
+	stack_nums.push(item);
+	stack_op.pop();
+}
+
+double Standart_Calculate()
 {
 	char ch;
 	double a, b, value;
-	double static _result;
 
-	stack <Token> stack_numbers;
-	stack <Token> stack_operands;
+	stack <Token> stack_nums;
+	stack <Token> stack_op;
 	Token item;
 
 	string str;
-	getline(std::cin, str);
+	getline(cin, str);
 	stringstream sstr{ str };
 
 	while (true) {
@@ -52,85 +83,83 @@ double Standart_Math()
 			sstr >> value;
 			item.symbol = '0';
 			item.value = value;
-			stack_numbers.push(item);
+			stack_nums.push(item);
 			continue;
 		}
-		if (ch == '^' || ch == '*' || ch == '/' || ch == '+' || ch == '-') {
+		if (ch == '+' || ch == '-' || ch == '*' || ch == '/' || ch == '^') {
+
 			item.symbol = ch;
 			item.value = 0;
-			stack_operands.push(item);
+			if (stack_op.size() == 0) {
+				stack_op.push(item);
+				sstr.ignore();
+				continue;
+			}
+			if (stack_op.size() != 0 && Check_Priority(ch) > Check_Priority(stack_op.top().symbol)) {
+				stack_op.push(item);
+				sstr.ignore();
+				continue;
+			}
+			else { Standart_Math(stack_nums, stack_op, item); continue; }
+		}
+		if (ch == '(') {
+			item.symbol = ch;
+			item.value = 0;
+			stack_op.push(item);
 			sstr.ignore();
 			continue;
 		}
-		else { cerr << endl << "Некорректный ввод."; }
-	}
-
-	while (stack_operands.size() != 0) {
-
-		a = stack_numbers.top().value;
-		stack_numbers.pop();
-		b = stack_numbers.top().value;
-
-		switch (stack_operands.top().symbol) {
-		case '^':
-			return 0.0;
-		case '*':
-			_result = a * b;
-			break;
-		case '/':
-			if (a == 0) { cerr << endl << "Деление на нуль."; }
-			_result = b / a;
-			break;
-		case '+':
-			_result = a + b;
-			break;
-		case '-':
-			_result = b - a;
-			break;
+		if (ch == ')') {
+			while (stack_op.top().symbol != '(') { Standart_Math(stack_nums, stack_op, item); }
+			item.symbol = ch;
+			item.value = 0;
+			stack_op.pop();
+			sstr.ignore();
+			continue;
 		}
-		item.symbol = '0';
-		item.value = _result;
-		stack_numbers.push(item);
-		stack_operands.pop();
+		else { cerr << endl << "Некорректный ввод."; system("pause"); exit(1); } // Добавить обработку ошибок (безусловный переход)
 	}
-	return _result;
+	while (stack_op.size() != 0) { Standart_Math(stack_nums, stack_op, item); }
+
+	return stack_nums.top().value;
 }
 
 double Sqrt_Math()
 {
-	double result_value = 0.0;
-	return result_value;
+	double result = 0.0;
+	return result;
 }
 
 int main()
 {
 	setlocale(LC_ALL, "Russian");
-
-	double static result;
-	Mode selected_mode;
+	Mode selected_mode = Standart;
+	double output;
 	bool end = false;
-
-	Select_Mode(selected_mode);
 
 	while (end != true)
 	{
+		Select_Mode(selected_mode);
 		cout << "   Калькулятор v" << VERSION << endl;
+
 		switch (selected_mode) {
 		case Standart:
 			cout << "   Введите выражение: ";
-			result = Standart_Math();
+			output = Standart_Calculate();
 			break;
 		case Sqrt:
-			result = Sqrt_Math();
+			output = Sqrt_Math();
 			break;
 		default:
 			cerr << endl << "Неизвестный режим.";
+			system("pause");
+			exit(1);
 		}
-		cout << endl << "   Результат равен: " << result << endl;
+		cout << endl << "   Результат равен: " << output << endl;
 		system("pause");
 
+
 		cout << "\033[2J\033[1;1H";
-		Select_Mode(selected_mode);
 	}
 	return 0;
 }
