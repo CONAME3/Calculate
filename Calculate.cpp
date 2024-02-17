@@ -2,14 +2,16 @@
 #include <sstream>
 #include <stack>
 #include <conio.h> 
+#define M_PI 3.14
 
 using namespace std;
-const float VERSION = 0.3f;
+const float VERSION = 0.4f;
 
 enum Mode
 {
 	Standart = 1,
-	Triangle = 2
+	Triangle = 2,
+	Circle = 3
 };
 
 enum Keys
@@ -26,11 +28,13 @@ struct Token
 
 void Select_Mode(bool& end, Mode& selected)
 {
-	cout << "   Выберите режим." << endl << "     Выйти     Стандартный     Триугольник     ";
+	cout << "   Выберите режим." << endl << "     Выйти     Стандартный     Триугольник     Окружность";
 	short key = 0;
 	short num_mode = selected;
 	if (num_mode == 1) { cout << "\033[3;14H" << "->"; }
-	if (num_mode == 2) { cout << "\033[3;30H" << "->"; }
+	else if (num_mode == 2) { cout << "\033[3;30H" << "->"; }
+	else if (num_mode == 3) { cout << "\033[3;46H" << "->"; }
+
 	while (key != 13)
 	{
 		key = _getch();
@@ -49,10 +53,16 @@ void Select_Mode(bool& end, Mode& selected)
 				cout << "\033[3;14H" << "->";
 				num_mode -= 1;
 			}
+			else if (num_mode == 3)
+			{
+				cout << "\033[3;46H" << "  ";
+				cout << "\033[3;30H" << "->";
+				num_mode -= 1;
+			}
 		}
 		if (key == Right)
 		{
-			if (num_mode == 2) { continue; }
+			if (num_mode == 3) { continue; }
 			else if (num_mode == 0)
 			{
 				cout << "\033[3;4H" << "  ";
@@ -63,6 +73,12 @@ void Select_Mode(bool& end, Mode& selected)
 			{
 				cout << "\033[3;14H" << "  ";
 				cout << "\033[3;30H" << "->";
+				num_mode += 1;
+			}
+			else if (num_mode == 2)
+			{
+				cout << "\033[3;30H" << "  ";
+				cout << "\033[3;46H" << "->";
 				num_mode += 1;
 			}
 		}
@@ -125,7 +141,8 @@ double Standart_Calculate()
 	getline(cin, str);
 	stringstream sstr{ str };
 
-	while (true) {
+	while (true)
+	{
 		ch = sstr.peek();
 		if (ch == '\377') { break; }
 		if (ch == ' ') { sstr.ignore(); continue; }
@@ -136,30 +153,34 @@ double Standart_Calculate()
 			stack_nums.push(item);
 			continue;
 		}
-		if (ch == '+' || ch == '-' || ch == '*' || ch == '/' || ch == '^') {
-
+		else if (ch == '+' || ch == '-' || ch == '*' || ch == '/' || ch == '^')
+		{
 			item.symbol = ch;
 			item.value = 0;
-			if (stack_op.size() == 0) {
+			if (stack_op.size() == 0)
+			{
 				stack_op.push(item);
 				sstr.ignore();
 				continue;
 			}
-			if (stack_op.size() != 0 && Check_Priority(ch) > Check_Priority(stack_op.top().symbol)) {
+			if (stack_op.size() != 0 && Check_Priority(ch) > Check_Priority(stack_op.top().symbol))
+			{
 				stack_op.push(item);
 				sstr.ignore();
 				continue;
 			}
 			else { Standart_Math(stack_nums, stack_op, item); continue; }
 		}
-		if (ch == '(') {
+		else if (ch == '(')
+		{
 			item.symbol = ch;
 			item.value = 0;
 			stack_op.push(item);
 			sstr.ignore();
 			continue;
 		}
-		if (ch == ')') {
+		else if (ch == ')')
+		{
 			while (stack_op.top().symbol != '(') { Standart_Math(stack_nums, stack_op, item); }
 			item.symbol = ch;
 			item.value = 0;
@@ -173,10 +194,52 @@ double Standart_Calculate()
 	return stack_nums.top().value;
 }
 
-double Triangle_Math()
+void Triangle_Math()
 {
-	double result = 0.0;
-	return result;
+	double a, b, y, A, B, C, p, s;
+	cin >> A >> B >> C;
+	if (A == 0 || B == 0 || C == 0) { cerr << endl << "Введены не все стороны."; system("pause"); exit(1); }
+
+	p = (A + B + C) / 2;
+	s = sqrt(p * (p - A) * (p - B) * (p - C));
+	if (s <= 0) { cerr << endl << "Триугольник с такими сторонами не может существовать."; system("pause"); exit(1); }
+
+	p = 180 / (A + B + C);
+	a = A * p;
+	b = B * p;
+	y = C * p;
+
+	cout << endl << "   Угол(a) = " << a << "   Угол(b) = " << b << "   Угол(y) = " << y << "   Площадь(s) = " << s << endl;
+}
+
+void Circle_Math()
+{
+	char ch;
+	double n, r, d, c, s;
+	cin >> ch >> n;
+
+	if (ch == 'r')
+	{
+		r = n;
+		d = r * 2;
+		c = d * M_PI;
+	}
+	else if (ch == 'd')
+	{
+		d = n;
+		r = d / 2;
+		c = d * M_PI;
+	}
+	else if (ch == 'c')
+	{
+		c = n;
+		d = c / M_PI;
+		r = d / 2;
+	}
+	else { cerr << endl << "Некорректный ввод."; system("pause"); exit(1); }
+
+	s = M_PI * pow(r, 2);
+	cout << endl << "   Радиус(r) = " << r << "   Диаметр(d) = " << d << "   Длинна(c) = " << c << "   Площадь(s) = " << s << endl;
 }
 
 int main()
@@ -196,14 +259,19 @@ int main()
 		case Standart:
 			cout << "   Введите выражение: ";
 			output = Standart_Calculate();
+			cout << endl << "   Результат равен: " << output << endl;
 			break;
 		case Triangle:
-			output = Triangle_Math();
+			cout << "   Введите три стороны триугольника через пробел: ";
+			Triangle_Math();
+			break;
+		case Circle:
+			cout << "   Введите символ известной величины и его значение через пробел." << endl << "   r - радиус, d - диаметр, c - длина окружности: ";
+			Circle_Math();
 			break;
 		default:
-			cerr << endl << "Деление на нуль."; system("pause"); exit(1);
+			cerr << endl << "Неизвестный режим."; system("pause"); exit(1);
 		}
-		cout << endl << "   Результат равен: " << output << endl;
 		system("pause");
 		cout << "\033[2;1H\033[0J";
 	}
